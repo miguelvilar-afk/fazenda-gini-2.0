@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Criar conta — Três Porquinhos</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="bar">
+    <a class="brand" href="index.html">
+      <svg viewBox="0 0 64 64"><circle cx="32" cy="34" r="22" fill="#D98B8B"/><ellipse cx="32" cy="38" rx="10" ry="7" fill="#C97272"/><circle cx="27" cy="37" r="1.6" fill="#5C3A3A"/><circle cx="37" cy="37" r="1.6" fill="#5C3A3A"/></svg>
+      <span>Três Porquinhos</span>
+    </a>
+    <nav class="main-nav">
+      <a href="index.html">Início</a>
+      <a href="loja.html">Loja</a>
+      <a href="login.html">Entrar</a>
+    </nav>
+  </div>
+</header>
+
+<section class="form-page">
+  <div class="container">
+    <div class="form-card">
+      <h1>Criar conta</h1>
+      <div id="alerta"></div>
+      <form onsubmit="return cadastrar(event)">
+        <div class="field">
+          <label for="nome">Nome completo</label>
+          <input id="nome" type="text" required>
+        </div>
+        <div class="field">
+          <label for="email">E-mail</label>
+          <input id="email" type="email" required>
+        </div>
+        <div class="field">
+          <label for="username">Usuário</label>
+          <input id="username" type="text" required>
+        </div>
+        <div class="field">
+          <label for="telefone">Telefone</label>
+          <input id="telefone" type="text" placeholder="(00) 00000-0000">
+        </div>
+        <div class="field">
+          <label for="endereco">Endereço</label>
+          <input id="endereco" type="text">
+        </div>
+        <div class="field">
+          <label for="password">Senha</label>
+          <input id="password" type="password" required>
+        </div>
+        <button class="btn" type="submit">Criar conta</button>
+      </form>
+      <p class="form-note">Já tem conta? <a href="login.html">Entrar</a></p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  Fazenda Três Porquinhos — site criado para fins de estudo de segurança web.
+</footer>
+
+<script src="js/app.js"></script>
+<script>
+  function cadastrar(ev) {
+    ev.preventDefault();
+    const alerta = document.getElementById('alerta');
+
+    const usuario = {
+      id: proximoId(),
+      username: document.getElementById('username').value.trim(),
+      email: document.getElementById('email').value.trim(),
+      password: document.getElementById('password').value, // guardado em texto puro, de propósito
+      role: 'cliente',
+      nome: document.getElementById('nome').value.trim(),
+      telefone: document.getElementById('telefone').value.trim(),
+      endereco: document.getElementById('endereco').value.trim(),
+      bio: 'Novo cliente cadastrado pelo site.'
+    };
+
+    if (!usuario.username || !usuario.password) {
+      alerta.innerHTML = '<div class="alert alert-error">Preencha usuário e senha.</div>';
+      return false;
+    }
+
+    salvarNovoUsuario(usuario);
+    iniciarSessao(usuario);
+    window.location.href = 'perfil.html?id=' + usuario.id;
+    return false;
+  }
+</script>
+</body>
+</html>

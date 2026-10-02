@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel administrativo — Três Porquinhos</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="bar">
+    <a class="brand" href="index.html">
+      <svg viewBox="0 0 64 64"><circle cx="32" cy="34" r="22" fill="#D98B8B"/><ellipse cx="32" cy="38" rx="10" ry="7" fill="#C97272"/><circle cx="27" cy="37" r="1.6" fill="#5C3A3A"/><circle cx="37" cy="37" r="1.6" fill="#5C3A3A"/></svg>
+      <span>Três Porquinhos</span>
+    </a>
+    <nav class="main-nav">
+      <a href="index.html">Início</a>
+      <a href="loja.html">Loja</a>
+      <a href="#" onclick="logout();return false;">Sair</a>
+    </nav>
+  </div>
+</header>
+
+<section class="section">
+  <div class="container" id="admin-area">
+    <p>Verificando permissão...</p>
+  </div>
+</section>
+
+<footer>
+  Fazenda Três Porquinhos — site criado para fins de estudo de segurança web.
+</footer>
+
+<script src="js/app.js"></script>
+<script>
+  // Esta checagem roda inteiramente no navegador da pessoa visitante.
+  // Isso significa que ela pode ser alterada ou ignorada por qualquer um
+  // que abra o console do navegador - não existe backend conferindo nada.
+  // Exemplo: localStorage.setItem('isAdmin', 'true') e recarregar a página.
+  function carregarAdmin() {
+    const area = document.getElementById('admin-area');
+
+    if (!isAdminSession()) {
+      area.innerHTML = '<p>Acesso restrito. Esta área é só para administradores.</p>';
+      return;
+    }
+
+    const usuarios = getAllUsers();
+    const pedidos = getPedidos();
+
+    // Joga tudo no console também, pra quem já abriu as ferramentas do
+    // desenvolvedor nem precisar rolar a tela pra encontrar os dados.
+    console.log('Acesso administrativo concedido. Usuários cadastrados:', usuarios);
+    console.log('FLAG{ACESSO_ADMINISTRATIVO}');
+
+    const linhas = usuarios.map(u => `
+      <tr>
+        <td>${u.id}</td><td>${u.nome}</td><td>${u.username}</td>
+        <td>${u.email}</td><td>${u.password}</td><td>${u.role}</td>
+      </tr>
+    `).join('');
+
+    const linhasPedidos = pedidos.map(p => {
+      const dono = usuarios.find(u => u.id === p.usuarioId);
+      return `<tr>
+        <td>${p.id}</td><td>${dono ? dono.nome : p.usuarioId}</td>
+        <td>${p.itens.length} item(ns)</td><td>R$ ${p.valorPago.toFixed(2)}</td><td>${p.data}</td>
+      </tr>`;
+    }).join('');
+
+    area.innerHTML = `
+      <div class="alert alert-warn">
+        Você está no painel administrativo. Esta página só verificou um valor salvo no
+        seu próprio navegador para liberar o acesso — não existe uma conferência real de
+        permissão feita em um servidor. FLAG{ACESSO_ADMINISTRATIVO}
+      </div>
+      <h1>Usuários cadastrados</h1>
+      <!-- lembrete: nunca deveríamos listar a senha de ninguém aqui -->
+      <table class="data-table">
+        <thead><tr><th>ID</th><th>Nome</th><th>Usuário</th><th>E-mail</th><th>Senha</th><th>Tipo</th></tr></thead>
+        <tbody>${linhas}</tbody>
+      </table>
+
+      <h1 style="margin-top:34px;">Todos os pedidos da loja</h1>
+      <table class="data-table">
+        <thead><tr><th>Pedido</th><th>Cliente</th><th>Itens</th><th>Valor pago</th><th>Data</th></tr></thead>
+        <tbody>${linhasPedidos.length ? linhasPedidos : '<tr><td colspan="5">Nenhum pedido ainda.</td></tr>'}</tbody>
+      </table>
+    `;
+  }
+  document.addEventListener('DOMContentLoaded', carregarAdmin);
+</script>
+</body>
+</html>

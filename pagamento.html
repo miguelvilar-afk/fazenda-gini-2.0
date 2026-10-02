@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pagamento — Três Porquinhos</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="bar">
+    <a class="brand" href="index.html">
+      <svg viewBox="0 0 64 64"><circle cx="32" cy="34" r="22" fill="#D98B8B"/><ellipse cx="32" cy="38" rx="10" ry="7" fill="#C97272"/><circle cx="27" cy="37" r="1.6" fill="#5C3A3A"/><circle cx="37" cy="37" r="1.6" fill="#5C3A3A"/></svg>
+      <span>Três Porquinhos</span>
+    </a>
+    <nav class="main-nav">
+      <a href="index.html">Início</a>
+      <a href="loja.html">Loja</a>
+      <span id="nav-user"></span>
+      <a id="nav-logout-link" href="#" onclick="logout();return false;">Sair</a>
+    </nav>
+  </div>
+</header>
+
+<section class="form-page">
+  <div class="container">
+    <div class="form-card wide">
+      <h1>Pagamento</h1>
+      <p style="color:var(--ink-soft);font-size:.92rem;">
+        Este pagamento é simulado — nenhum dado de cartão é enviado a lugar nenhum,
+        é só pra fins da atividade.
+      </p>
+
+      <div id="resumo"></div>
+      <div id="resultado"></div>
+
+      <form onsubmit="return finalizarCompra(event)">
+        <div class="field">
+          <label for="numero-cartao">Número do cartão</label>
+          <input id="numero-cartao" type="text" placeholder="0000 0000 0000 0000" required>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="validade">Validade</label>
+            <input id="validade" type="text" placeholder="MM/AA" required>
+          </div>
+          <div class="field">
+            <label for="cvv">CVV</label>
+            <input id="cvv" type="text" placeholder="000" required>
+          </div>
+        </div>
+        <div class="field">
+          <label for="nome-cartao">Nome impresso no cartão</label>
+          <input id="nome-cartao" type="text" required>
+        </div>
+
+        <!-- O valor final a pagar fica aqui, pronto pra ser lido pelo
+             JavaScript na hora de confirmar o pedido. Esse campo é oculto
+             na tela, mas continua existindo no HTML e pode ser editado
+             pelo Inspecionar elemento. -->
+        <input type="hidden" id="valor-a-pagar" value="0">
+
+        <button class="btn" type="submit">Confirmar pagamento</button>
+      </form>
+    </div>
+  </div>
+</section>
+
+<footer>
+  Fazenda Três Porquinhos — site criado para fins de estudo de segurança web.
+</footer>
+
+<script src="js/app.js"></script>
+<script>
+  function montarResumo() {
+    const carrinho = getCarrinho();
+    const sessao = getSessao();
+
+    if (!sessao) {
+      window.location.href = 'login.html';
+      return;
+    }
+    if (carrinho.length === 0) {
+      document.getElementById('resumo').innerHTML = '<div class="alert alert-error">Carrinho vazio.</div>';
+      return;
+    }
+
+    const desconto = Number(sessionStorage.getItem('descontoAplicado') || 0);
+    const subtotal = calcularSubtotal(carrinho);
+    const total = subtotal - subtotal * (desconto / 100);
+
+    document.getElementById('resumo').innerHTML = `
+      <ul>${carrinho.map(i => `<li>${i.qtd}x ${i.nome} — R$ ${(i.preco * i.qtd).toFixed(2)}</li>`).join('')}</ul>
+      <p><strong>Total a pagar: R$ ${total.toFixed(2)}</strong></p>
+    `;
+
+    // Preenche o campo oculto com o valor calculado agora...
+    document.getElementById('valor-a-pagar').value = total.toFixed(2);
+  }
+
+  function finalizarCompra(ev) {
+    ev.preventDefault();
+    const sessao = getSessao();
+    const carrinho = getCarrinho();
+    const resultado = document.getElementById('resultado');
+
+    // ...só que, na hora de fechar o pedido, o site confia no valor que
+    // está dentro do campo oculto do formulário, em vez de recalcular o
+    // total de novo a partir dos itens do carrinho. Se esse campo for
+    // alterado antes do clique em "Confirmar pagamento", o valor adulterado
+    // é o que acaba sendo registrado como pago.
+    const valorPago = Number(document.getElementById('valor-a-pagar').value);
+    const valorReal = calcularSubtotal(carrinho) -
+      calcularSubtotal(carrinho) * (Number(sessionStorage.getItem('descontoAplicado') || 0) / 100);
+
+    const pedido = {
+      id: proximoPedidoId(),
+      usuarioId: sessao.id,
+      itens: carrinho,
+      valorPago: valorPago,
+      valorReal: Number(valorReal.toFixed(2)),
+      enderecoEntrega: '', // preenchido abaixo, a partir do perfil
+      data: new Date().toLocaleString('pt-BR')
+    };
+
+    const usuario = getAllUsers().find(u => u.id === sessao.id);
+    pedido.enderecoEntrega = usuario ? usuario.endereco : '';
+
+    salvarPedido(pedido);
+    salvarCarrinho([]);
+    sessionStorage.removeItem('descontoAplicado');
+
+    let aviso = '';
+    if (Math.abs(valorPago - valorReal) > 0.01) {
+      aviso = `<div class="alert alert-warn">
+        Pagamento aprovado por R$ ${valorPago.toFixed(2)}, mas o valor real do carrinho era
+        R$ ${valorReal.toFixed(2)}. O site aceitou o valor enviado pelo formulário sem conferir.
+        FLAG{PRECO_MANIPULADO}
+      </div>`;
+    }
+
+    resultado.innerHTML = `
+      <div class="alert alert-ok">Pagamento aprovado! Pedido nº ${pedido.id} confirmado.</div>
+      ${aviso}
+      <a class="btn" href="pedidos.html?pedido=${pedido.id}">Ver pedido</a>
+    `;
+    document.querySelector('form').style.display = 'none';
+    return false;
+  }
+
+  document.addEventListener('DOMContentLoaded', montarResumo);
+</script>
+</body>
+</html>

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Carrinho — Três Porquinhos</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="bar">
+    <a class="brand" href="index.html">
+      <svg viewBox="0 0 64 64"><circle cx="32" cy="34" r="22" fill="#D98B8B"/><ellipse cx="32" cy="38" rx="10" ry="7" fill="#C97272"/><circle cx="27" cy="37" r="1.6" fill="#5C3A3A"/><circle cx="37" cy="37" r="1.6" fill="#5C3A3A"/></svg>
+      <span>Três Porquinhos</span>
+    </a>
+    <nav class="main-nav">
+      <a href="index.html">Início</a>
+      <a href="loja.html">Loja</a>
+      <a class="cart-link" href="carrinho.html">Carrinho <span id="cart-count" class="cart-count" style="display:none;">0</span></a>
+      <span id="nav-user"></span>
+      <a id="nav-pedidos-link" href="pedidos.html" style="display:none;">Meus pedidos</a>
+      <a id="nav-perfil-link" href="perfil.html" style="display:none;">Meu perfil</a>
+      <a id="nav-admin-link" class="admin-link" href="admin.html" style="display:none;">Painel administrativo</a>
+      <a id="nav-login-link" class="pill" href="login.html">Entrar</a>
+      <a id="nav-logout-link" href="#" onclick="logout();return false;" style="display:none;">Sair</a>
+    </nav>
+  </div>
+</header>
+
+<section class="section">
+  <div class="container">
+    <h1>Seu carrinho</h1>
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:28px;align-items:start;" id="carrinho-layout">
+      <div id="lista-itens"></div>
+      <div class="carrinho-resumo">
+        <h3 style="margin-top:0;">Resumo</h3>
+        <div class="cupom-box">
+          <input id="cupom" type="text" placeholder="Código do cupom">
+          <button class="btn btn-ghost btn-sm" onclick="aplicarCupom()">Aplicar</button>
+        </div>
+        <div id="cupom-msg"></div>
+        <div class="linha-total"><span>Subtotal</span><span id="r-subtotal">R$ 0,00</span></div>
+        <div class="linha-total"><span>Desconto</span><span id="r-desconto">R$ 0,00</span></div>
+        <div class="linha-total total-final"><span>Total</span><span id="r-total">R$ 0,00</span></div>
+        <button class="btn" style="width:100%;margin-top:14px;" onclick="irParaPagamento()">Finalizar compra</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  Fazenda Três Porquinhos — site criado para fins de estudo de segurança web.
+</footer>
+
+<script src="js/app.js"></script>
+<script>
+  let descontoPercent = 0;
+
+  function renderCarrinho() {
+    const carrinho = getCarrinho();
+    const lista = document.getElementById('lista-itens');
+
+    if (carrinho.length === 0) {
+      lista.innerHTML = '<p>Seu carrinho está vazio. <a href="loja.html">Ver catálogo</a></p>';
+    } else {
+      lista.innerHTML = carrinho.map(item => `
+        <div class="carrinho-item">
+          <div class="info">
+            <strong>${item.nome}</strong><br>
+            <span style="color:var(--ink-soft)">R$ ${item.preco.toFixed(2)} cada</span>
+          </div>
+          <div class="qtd">
+            <button onclick="alterarQtd(${item.produtoId}, -1); renderCarrinho();">-</button>
+            <span>${item.qtd}</span>
+            <button onclick="alterarQtd(${item.produtoId}, 1); renderCarrinho();">+</button>
+          </div>
+          <button class="btn-ghost btn-sm" onclick="removerDoCarrinho(${item.produtoId}); renderCarrinho();">Remover</button>
+        </div>
+      `).join('');
+    }
+
+    const subtotal = calcularSubtotal(carrinho);
+    const desconto = subtotal * (descontoPercent / 100);
+    const total = subtotal - desconto;
+
+    document.getElementById('r-subtotal').textContent = 'R$ ' + subtotal.toFixed(2);
+    document.getElementById('r-desconto').textContent = '- R$ ' + desconto.toFixed(2);
+    document.getElementById('r-total').textContent = 'R$ ' + total.toFixed(2);
+
+    // Guarda o total calculado nesta tela pra página de pagamento usar.
+    // (essa é só a sugestão inicial - veja o que acontece com ela na tela seguinte)
+    sessionStorage.setItem('totalSugerido', total.toFixed(2));
+  }
+
+  function aplicarCupom() {
+    const codigo = document.getElementById('cupom').value.trim().toUpperCase();
+    const msg = document.getElementById('cupom-msg');
+    if (CUPONS[codigo] !== undefined) {
+      descontoPercent = CUPONS[codigo];
+      msg.innerHTML = '<p class="badge-ok">Cupom aplicado: ' + descontoPercent + '% de desconto.</p>';
+    } else {
+      descontoPercent = 0;
+      msg.innerHTML = '<div class="alert alert-error">Cupom inválido.</div>';
+    }
+    renderCarrinho();
+  }
+
+  function irParaPagamento() {
+    if (getCarrinho().length === 0) { alert('Seu carrinho está vazio.'); return; }
+    sessionStorage.setItem('descontoAplicado', String(descontoPercent));
+    window.location.href = 'pagamento.html';
+  }
+
+  document.addEventListener('DOMContentLoaded', renderCarrinho);
+</script>
+</body>
+</html>
